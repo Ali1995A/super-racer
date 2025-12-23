@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Super Racer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
+        }
+
+        /* FSD风格顶部信息栏 */
+        .fsd-header {
+            background: rgba(20, 20, 20, 0.95);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .fsd-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fsd-logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .fsd-logo span {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .fsd-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .speed-display {
+            color: #00d4ff;
+            font-size: 24px;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .speed-unit {
+            font-size: 12px;
+            color: #666;
+            margin-left: 2px;
+        }
+
+        .score-display {
+            color: #00ff88;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .fsd-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* 游戏区域 */
+        .game-area {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            box-shadow: 0 0 50px rgba(0, 212, 255, 0.1);
+        }
+
+        /* FSD风格侧边信息 */
+        .fsd-sidebar {
+            position: absolute;
+            right: 240px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .fsd-indicator {
+            background: rgba(20, 20, 20, 0.8);
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .fsd-indicator label {
+            color: #666;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .fsd-indicator .value {
+            color: #fff;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        /* 触摸控制区域 - 游戏手柄布局 */
+        .touch-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* 左侧摇杆区 - 上、左、下 */
+        .touch-left-dpad {
+            position: absolute;
+            left: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            height: 200px;
+            pointer-events: auto;
+        }
+
+        /* 右侧方向键区 - 上、右、下 */
+        .touch-right-dpad {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            height: 200px;
+            pointer-events: auto;
+        }
+
+        /* D-pad按钮样式 */
+        .dpad-btn {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border-radius: 18px;
+            background: linear-gradient(145deg, rgba(30, 30, 40, 0.9), rgba(15, 15, 25, 0.95));
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-user-select: none;
+            user-select: none;
+            backdrop-filter: blur(15px);
+            box-shadow:
+                0 4px 15px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .dpad-btn::before {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            border-radius: 16px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent);
+            pointer-events: none;
+        }
+
+        .dpad-btn:active,
+        .dpad-btn.active {
+            transform: scale(0.88);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.5),
+                inset 0 2px 4px rgba(0, 0, 0, 0.3),
+                0 0 25px rgba(0, 212, 255, 0.3);
+        }
+
+        /* 左侧D-pad按钮位置 */
+        .dpad-left-up {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(145deg, rgba(0, 180, 100, 0.3), rgba(0, 140, 80, 0.4));
+            border-color: rgba(0, 200, 100, 0.5);
+            box-shadow:
+                0 4px 15px rgba(0, 200, 100, 0.2),
+                inset 0 1px 0 rgba(0, 255, 150, 0.2);
+        }
+
+        .dpad-left-left {
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            background: linear-gradient(145deg, rgba(0, 100, 200, 0.3), rgba(0, 70, 150, 0.4));
+            border-color: rgba(0, 120, 255, 0.5);
+            box-shadow:
+                0 4px 15px rgba(0, 120, 255, 0.2),
+                inset 0 1px 0 rgba(0, 150, 255, 0.2);
+        }
+
+        .dpad-left-down {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(145deg, rgba(255, 80, 60, 0.3), rgba(220, 50, 40, 0.4));
+            border-color: rgba(255, 100, 80, 0.5);
+            box-shadow:
+                0 4px 15px rgba(255, 80, 60, 0.2),
+                inset 0 1px 0 rgba(255, 120, 100, 0.2);
+        }
+
+        /* 右侧D-pad按钮位置 */
+        .dpad-right-up {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(145deg, rgba(0, 180, 100, 0.3), rgba(0, 140, 80, 0.4));
+            border-color: rgba(0, 200, 100, 0.5);
+            box-shadow:
+                0 4px 15px rgba(0, 200, 100, 0.2),
+                inset 0 1px 0 rgba(0, 255, 150, 0.2);
+        }
+
+        .dpad-right-right {
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            background: linear-gradient(145deg, rgba(0, 100, 200, 0.3), rgba(0, 70, 150, 0.4));
+            border-color: rgba(0, 120, 255, 0.5);
+            box-shadow:
+                0 4px 15px rgba(0, 120, 255, 0.2),
+                inset 0 1px 0 rgba(0, 150, 255, 0.2);
+        }
+
+        .dpad-right-down {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(145deg, rgba(255, 80, 60, 0.3), rgba(220, 50, 40, 0.4));
+            border-color: rgba(255, 100, 80, 0.5);
+            box-shadow:
+                0 4px 15px rgba(255, 80, 60, 0.2),
+                inset 0 1px 0 rgba(255, 120, 100, 0.2);
+        }
+
+        /* 按钮图标样式 */
+        .dpad-btn svg {
+            width: 36px;
+            height: 36px;
+            fill: #fff;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+            transition: all 0.15s ease;
+        }
+
+        .dpad-btn:active svg,
+        .dpad-btn.active svg {
+            transform: scale(0.9);
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+        }
+
+        /* 顶部功能按钮区域 */
+        .touch-top-controls {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            pointer-events: auto;
+        }
+
+        /* 功能按钮 */
+        .function-btn {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, rgba(40, 40, 50, 0.9), rgba(20, 20, 30, 0.95));
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(15px);
+            box-shadow:
+                0 4px 15px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .function-btn:active {
+            background: linear-gradient(145deg, rgba(60, 60, 70, 0.9), rgba(30, 30, 40, 0.95));
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: scale(0.92);
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.5),
+                inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .function-btn svg {
+            width: 30px;
+            height: 30px;
+            fill: #fff;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+        }
+
+        /* 按钮标签 */
+        .dpad-label {
+            position: absolute;
+            bottom: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 加速按钮特殊样式 */
+        .dpad-left-up:active,
+        .dpad-left-up.active,
+        .dpad-right-up:active,
+        .dpad-right-up.active {
+            background: linear-gradient(145deg, rgba(0, 220, 120, 0.6), rgba(0, 180, 100, 0.7));
+            border-color: #00ff88;
+            box-shadow:
+                0 2px 8px rgba(0, 255, 136, 0.4),
+                inset 0 2px 4px rgba(0, 0, 0, 0.2),
+                0 0 30px rgba(0, 255, 136, 0.4);
+        }
+
+        /* 减速按钮特殊样式 */
+        .dpad-left-down:active,
+        .dpad-left-down.active,
+        .dpad-right-down:active,
+        .dpad-right-down.active {
+            background: linear-gradient(145deg, rgba(255, 100, 80, 0.6), rgba(255, 60, 50, 0.7));
+            border-color: #ff6b60;
+            box-shadow:
+                0 2px 8px rgba(255, 100, 80, 0.4),
+                inset 0 2px 4px rgba(0, 0, 0, 0.2),
+                0 0 30px rgba(255, 80, 60, 0.4);
+        }
+
+        /* 左右按钮激活样式 */
+        .dpad-left-left:active,
+        .dpad-left-left.active,
+        .dpad-right-right:active,
+        .dpad-right-right.active {
+            border-color: #4da6ff;
+            box-shadow:
+                0 2px 8px rgba(0, 120, 255, 0.4),
+                inset 0 2px 4px rgba(0, 0, 0, 0.2),
+                0 0 30px rgba(0, 120, 255, 0.4);
+        }
+
+        /* 横竖屏适配 */
+        @media (orientation: portrait) {
+            .touch-left-dpad {
+                left: 20px;
+                width: 150px;
+                height: 150px;
+            }
+
+            .touch-right-dpad {
+                right: 20px;
+                width: 150px;
+                height: 150px;
+            }
+
+            .dpad-btn {
+                width: 50px;
+                height: 50px;
+            }
+
+            .dpad-btn svg {
+                width: 26px;
+                height: 26px;
+            }
+        }
+
+        @media (orientation: landscape) {
+            .touch-left-dpad {
+                left: 40px;
+            }
+
+            .touch-right-dpad {
+                right: 40px;
+            }
+        }
+
+        /* 开始/结束界面 */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay-title {
+            color: #fff;
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
+        .overlay-subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+
+        .overlay-score {
+            color: #00ff88;
+            font-size: 64px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .overlay-label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            color: #fff;
+            border: none;
+            padding: 16px 48px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(0, 212, 255, 0.4);
+        }
+
+        .start-btn:active {
+            transform: translateY(0);
+        }
+
+        .instructions {
+            color: #666;
+            font-size: 13px;
+            margin-top: 30px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .difficulty-selection {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .difficulty-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 100px;
+        }
+
+        .difficulty-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .difficulty-btn.selected {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            border-color: #00d4ff;
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .easy-btn.selected {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            border-color: #00ff88;
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .hard-btn.selected {
+            background: linear-gradient(135deg, #ff3b30 0%, #d70015 100%);
+            border-color: #ff3b30;
+            box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3);
+        }
+
+        .easy-easy-btn.selected {
+            background: linear-gradient(135deg, #90EE90 0%, #32CD32 100%);
+            border-color: #90EE90;
+            box-shadow: 0 4px 20px rgba(144, 238, 144, 0.3);
+        }
+
+        /* FSD底部状态栏 */
+        .fsd-footer {
+            background: rgba(20, 20, 20, 0.95);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+        }
+
+        .fsd-footer-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .fsd-footer-item svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .fsd-footer-item span {
+            color: #666;
+            font-size: 12px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .fsd-header {
+                padding: 8px 15px;
+            }
+
+            .fsd-logo span {
+                font-size: 14px;
+            }
+
+            .speed-display {
+                font-size: 20px;
+            }
+
+            .score-display {
+                font-size: 14px;
+            }
+
+            .fsd-sidebar {
+                right: 10px;
+                gap: 8px;
+            }
+
+            .fsd-indicator {
+                padding: 8px;
+            }
+
+            .fsd-indicator .value {
+                font-size: 16px;
+            }
+
+            .dpad-btn {
+                width: 50px;
+                height: 50px;
+            }
+
+            .dpad-btn svg {
+                width: 26px;
+                height: 26px;
+            }
+
+            .overlay-title {
+                font-size: 32px;
+            }
+
+            .start-btn {
+                padding: 14px 40px;
+                font-size: 16px;
+            }
+
+            .control-btn svg {
+                width: 18px;
+                height: 18px;
+            }
+        }
+
+        /* 暗色模式适配 */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #000;
+            }
+        }
+
+        /* 隐藏移动端右上角的控制按钮，只在桌面显示 */
+        @media (hover: none) and (pointer: coarse) {
+            .fsd-controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- FSD风格顶部 -->
+        <div class="fsd-header">
+            <div class="fsd-logo">
+                <svg viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="14" stroke="#00d4ff" stroke-width="2"/>
+                    <path d="M16 8V24M8 16H24" stroke="#00d4ff" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="16" cy="16" r="4" fill="#00d4ff"/>
+                </svg>
+                <span id="difficultyDisplay">NORMAL</span>
+            </div>
+            <div class="fsd-status">
+                <div class="speed-display">
+                    <span id="speed">0</span>
+                    <span class="speed-unit">km/h</span>
+                </div>
+                <div class="score-display">
+                    <span id="score">0</span>
+                </div>
+            </div>
+            <div class="fsd-controls">
+                <button class="control-btn" id="homeBtn" title="Back to Home">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <polyline points="9,22 9,12 15,12 15,22" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <button class="control-btn" id="fullscreenBtn" title="Toggle Fullscreen">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 游戏区域 -->
+        <div class="game-area">
+            <canvas id="gameCanvas"></canvas>
+
+            <!-- FSD侧边信息 -->
+            <div class="fsd-sidebar">
+                <div class="fsd-indicator">
+                    <label>DISTANCE</label>
+                    <div class="value" id="distance">0m</div>
+                </div>
+                <div class="fsd-indicator">
+                    <label>CARS</label>
+                    <div class="value" id="cars">0</div>
+                </div>
+                <div class="fsd-indicator">
+                    <label>LEVEL</label>
+                    <div class="value" id="level">1</div>
+                </div>
+            </div>
+
+            <!-- 触摸控制 - 游戏手柄布局 -->
+            <div class="touch-controls" id="touchControls">
+                <!-- 左侧D-pad：上（加速）、左（左移）、下（减速） -->
+                <div class="touch-left-dpad">
+                    <div class="dpad-btn dpad-left-up" id="accelerateBtn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 4l-8 8h6v8h4v-8h6z"/>
+                        </svg>
+                        <span class="dpad-label">加速</span>
+                    </div>
+                    <div class="dpad-btn dpad-left-left" id="leftBtn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M4 12l8 8V14h8v-4h-8V4z"/>
+                        </svg>
+                        <span class="dpad-label">左</span>
+                    </div>
+                    <div class="dpad-btn dpad-left-down" id="brakeBtn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 20l8-8h-6V4h-4v8H4z"/>
+                        </svg>
+                        <span class="dpad-label">减速</span>
+                    </div>
+                </div>
+
+                <!-- 右侧D-pad：上（加速）、右（右移）、下（减速） -->
+                <div class="touch-right-dpad">
+                    <div class="dpad-btn dpad-right-up" id="rightAccelerateBtn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 4l-8 8h6v8h4v-8h6z"/>
+                        </svg>
+                        <span class="dpad-label">加速</span>
+                    </div>
+                    <div class="dpad-btn dpad-right-right" id="rightBtn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 12l-8-8v6H4v4h8v6z"/>
+                        </svg>
+                        <span class="dpad-label">右</span>
+                    </div>
+                    <div class="dpad-btn dpad-right-down" id="rightBrakeBtn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 20l8-8h-6V4h-4v8H4z"/>
+                        </svg>
+                        <span class="dpad-label">减速</span>
+                    </div>
+                </div>
+
+                <!-- 顶部功能按钮 -->
+                <div class="touch-top-controls">
+                    <div class="touch-btn function-btn" id="pauseBtn">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="5" y="4" width="5" height="16" rx="2" fill="#fff"/>
+                            <rect x="14" y="4" width="5" height="16" rx="2" fill="#fff"/>
+                        </svg>
+                    </div>
+                    <div class="touch-btn function-btn" id="homeBtnMobile">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="#fff"/>
+                            <polyline points="9,22 9,12 15,12 15,22" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 开始界面 -->
+            <div class="overlay" id="startOverlay">
+                <div class="overlay-title">SUPER RACER</div>
+                <div class="overlay-subtitle">Choose Difficulty</div>
+                
+                <div class="difficulty-selection">
+                    <button class="difficulty-btn easy-easy-btn" data-difficulty="easy-easy">EASY-EASY</button>
+                    <button class="difficulty-btn easy-btn" data-difficulty="easy">EASY</button>
+                    <button class="difficulty-btn normal-btn" data-difficulty="normal">NORMAL</button>
+                    <button class="difficulty-btn hard-btn" data-difficulty="hard">HARD</button>
+                </div>
+                
+                <button class="start-btn" id="startBtn">START GAME</button>
+                
+                <div class="instructions">
+                    Use arrow keys ← → or touch buttons to control the car<br>
+                    Avoid other vehicles and drive as far as possible
+                </div>
+            </div>
+
+            <!-- 游戏结束界面 -->
+            <div class="overlay hidden" id="gameOverOverlay">
+                <div class="overlay-label">FINAL SCORE</div>
+                <div class="overlay-score" id="finalScore">0</div>
+                <div class="overlay-label" id="finalDistance">Distance: 0m</div>
+                <button class="start-btn" id="restartBtn">PLAY AGAIN</button>
+            </div>
+        </div>
+
+        <!-- FSD底部 -->
+        <div class="fsd-footer">
+            <div class="fsd-footer-item">
+                <svg viewBox="0 0 16 16" fill="#00ff88">
+                    <circle cx="8" cy="8" r="6" fill-opacity="0.3"/>
+                    <circle cx="8" cy="8" r="3"/>
+                </svg>
+                <span>ENGAGED</span>
+            </div>
+            <div class="fsd-footer-item">
+                <svg viewBox="0 0 16 16" fill="#00d4ff">
+                    <rect x="2" y="6" width="12" height="4" rx="2"/>
+                </svg>
+                <span>AUTOPILOT</span>
+            </div>
+            <div class="fsd-footer-item">
+                <svg viewBox="0 0 16 16" fill="#666">
+                    <circle cx="8" cy="8" r="6" fill-opacity="0.3"/>
+                    <circle cx="8" cy="8" r="2"/>
+                </svg>
+                <span>READY</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏配置
+        const CONFIG = {
+            canvasWidth: 400,
+            canvasHeight: 700,
+            roadWidth: 300,
+            laneCount: 4,
+            carWidth: 40,
+            carHeight: 70,
+            playerSpeed: 5,
+            decelerationRate: 0.3,
+            minSpeed: 2,
+            difficulties: {
+                'easy-easy': {
+                    enemyCarSpeed: 0.2,
+                    maxSpeed: 5,
+                    acceleration: 0.03,
+                    spawnRate: 0.005,
+                    levelMultiplier: 0.001
+                },
+                easy: {
+                    enemyCarSpeed: 0.5,
+                    maxSpeed: 8,
+                    acceleration: 0.05,
+                    spawnRate: 0.01,
+                    levelMultiplier: 0.002
+                },
+                normal: {
+                    enemyCarSpeed: 3,
+                    maxSpeed: 15,
+                    acceleration: 0.1,
+                    spawnRate: 0.02,
+                    levelMultiplier: 0.005
+                },
+                hard: {
+                    enemyCarSpeed: 4,
+                    maxSpeed: 18,
+                    acceleration: 0.12,
+                    spawnRate: 0.025,
+                    levelMultiplier: 0.007
+                }
+            }
+        };
+
+        // 音效系统
+        class SoundSystem {
+            constructor() {
+                this.audioContext = null;
+                this.sounds = {};
+                this.initialized = false;
+            }
+
+            init() {
+                if (this.initialized) return;
+                
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.createSounds();
+                    this.initialized = true;
+                } catch (e) {
+                    console.log('Audio not supported:', e);
+                }
+            }
+
+            createSounds() {
+                // 引擎音效
+                this.sounds.engine = () => {
+                    if (!this.audioContext) return;
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(80, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(120, this.audioContext.currentTime + 0.1);
+                    
+                    gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 0.1);
+                };
+
+                // 碰撞音效
+                this.sounds.crash = () => {
+                    if (!this.audioContext) return;
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    const filter = this.audioContext.createBiquadFilter();
+                    
+                    oscillator.connect(filter);
+                    filter.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.type = 'square';
+                    oscillator.frequency.setValueAtTime(100, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(30, this.audioContext.currentTime + 0.3);
+                    
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(1000, this.audioContext.currentTime);
+                    filter.frequency.exponentialRampToValueAtTime(100, this.audioContext.currentTime + 0.3);
+                    
+                    gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 0.3);
+                };
+
+                // 转向音效
+                this.sounds.turn = () => {
+                    if (!this.audioContext) return;
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(600, this.audioContext.currentTime + 0.05);
+                    
+                    gainNode.gain.setValueAtTime(0.05, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.05);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 0.05);
+                };
+
+                // 减速音效
+                this.sounds.brake = () => {
+                    if (!this.audioContext) return;
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.type = 'triangle';
+                    oscillator.frequency.setValueAtTime(200, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(50, this.audioContext.currentTime + 0.2);
+                    
+                    gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 0.2);
+                };
+
+                // 得分音效
+                this.sounds.score = () => {
+                    if (!this.audioContext) return;
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime); // C5
+                    oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.1); // E5
+                    oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.2); // G5
+                    
+                    gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 0.3);
+                };
+            }
+
+            play(soundName) {
+                if (!this.initialized || !this.sounds[soundName]) return;
+                
+                try {
+                    this.sounds[soundName]();
+                } catch (e) {
+                    console.log('Error playing sound:', e);
+                }
+            }
+        }
+
+        // 游戏状态
+        let gameState = {
+            isRunning: false,
+            score: 0,
+            distance: 0,
+            speed: 0,
+            level: 1,
+            carsPassed: 0,
+            difficulty: 'normal',
+            config: {},
+            isBraking: false,
+            lastScore: 0
+        };
+
+        // 音效系统实例
+        const soundSystem = new SoundSystem();
+
+        // 玩家车辆
+        let player = {
+            x: CONFIG.canvasWidth / 2 - CONFIG.carWidth / 2,
+            y: CONFIG.canvasHeight - CONFIG.carHeight - 50,
+            width: CONFIG.carWidth,
+            height: CONFIG.carHeight,
+            targetX: CONFIG.canvasWidth / 2 - CONFIG.carWidth / 2
+        };
+
+        // 敌人车辆
+        let enemies = [];
+        // 道路标记
+        let roadMarks = [];
+        // 粒子效果
+        let particles = [];
+
+        // Canvas设置
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 响应式调整
+        function resizeCanvas() {
+            const container = document.querySelector('.game-area');
+            const maxWidth = Math.min(container.clientWidth - 40, CONFIG.canvasWidth);
+            const maxHeight = Math.min(container.clientHeight - 40, CONFIG.canvasHeight);
+            
+            const scale = Math.min(maxWidth / CONFIG.canvasWidth, maxHeight / CONFIG.canvasHeight);
+            
+            canvas.width = CONFIG.canvasWidth;
+            canvas.height = CONFIG.canvasHeight;
+            canvas.style.width = `${CONFIG.canvasWidth * scale}px`;
+            canvas.style.height = `${CONFIG.canvasHeight * scale}px`;
+        }
+
+        // 初始化道路标记
+        function initRoadMarks() {
+            roadMarks = [];
+            const laneWidth = CONFIG.roadWidth / CONFIG.laneCount;
+            for (let i = 1; i < CONFIG.laneCount; i++) {
+                for (let y = -50; y < CONFIG.canvasHeight + 50; y += 80) {
+                    roadMarks.push({
+                        x: (CONFIG.canvasWidth - CONFIG.roadWidth) / 2 + laneWidth * i - 2,
+                        y: y,
+                        width: 4,
+                        height: 40
+                    });
+                }
+            }
+        }
+
+        // 绘制道路
+        function drawRoad() {
+            // 道路背景
+            const roadX = (CONFIG.canvasWidth - CONFIG.roadWidth) / 2;
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(roadX, 0, CONFIG.roadWidth, CONFIG.canvasHeight);
+
+            // 道路边缘线
+            ctx.strokeStyle = '#00d4ff';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#00d4ff';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(roadX, 0);
+            ctx.lineTo(roadX, CONFIG.canvasHeight);
+            ctx.moveTo(roadX + CONFIG.roadWidth, 0);
+            ctx.lineTo(roadX + CONFIG.roadWidth, CONFIG.canvasHeight);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // 道路标记
+            ctx.fillStyle = '#ffffff';
+            roadMarks.forEach(mark => {
+                ctx.globalAlpha = 0.6;
+                ctx.fillRect(mark.x, mark.y, mark.width, mark.height);
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // 绘制车辆（特斯拉风格）
+        function drawCar(x, y, width, height, isPlayer, color = '#ff3b30') {
+            ctx.save();
+            
+            // 车身阴影
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetY = 5;
+
+            // 车身主体
+            const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
+            if (isPlayer) {
+                gradient.addColorStop(0, '#00d4ff');
+                gradient.addColorStop(0.5, '#0099cc');
+                gradient.addColorStop(1, '#006699');
+            } else {
+                gradient.addColorStop(0, color);
+                gradient.addColorStop(0.5, shadeColor(color, -20));
+                gradient.addColorStop(1, shadeColor(color, -40));
+            }
+            
+            ctx.fillStyle = gradient;
+            
+            // 圆角矩形车身
+            roundRect(ctx, x, y, width, height, 8);
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+
+            // 车顶
+            ctx.fillStyle = isPlayer ? '#003344' : shadeColor(color, -60);
+            roundRect(ctx, x + 5, y + 15, width - 10, height * 0.35, 5);
+            ctx.fill();
+
+            // 前挡风玻璃
+            ctx.fillStyle = isPlayer ? '#004455' : 'rgba(100, 100, 100, 0.8)';
+            roundRect(ctx, x + 8, y + 12, width - 16, height * 0.25, 4);
+            ctx.fill();
+
+            // 后挡风玻璃
+            ctx.fillStyle = isPlayer ? '#004455' : 'rgba(100, 100, 100, 0.8)';
+            roundRect(ctx, x + 8, y + height - 25, width - 16, 12, 3);
+            ctx.fill();
+
+            // 车灯
+            if (isPlayer) {
+                // 前灯
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(x + 8, y + 5, 4, 0, Math.PI * 2);
+                ctx.arc(x + width - 8, y + 5, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 尾灯
+                ctx.fillStyle = '#ff3b30';
+                ctx.shadowColor = '#ff3b30';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(x + 8, y + height - 5, 3, 0, Math.PI * 2);
+                ctx.arc(x + width - 8, y + height - 5, 3, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // 敌车尾灯
+                ctx.fillStyle = '#ff3b30';
+                ctx.shadowColor = '#ff3b30';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(x + 8, y + 5, 3, 0, Math.PI * 2);
+                ctx.arc(x + width - 8, y + 5, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.shadowBlur = 0;
+
+            // 车轮
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(x - 3, y + 10, 6, 15);
+            ctx.fillRect(x + width - 3, y + 10, 6, 15);
+            ctx.fillRect(x - 3, y + height - 25, 6, 15);
+            ctx.fillRect(x + width - 3, y + height - 25, 6, 15);
+
+            ctx.restore();
+        }
+
+        // 圆角矩形辅助函数
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        // 颜色加深/变浅
+        function shadeColor(color, percent) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+        }
+
+        // 生成敌人车辆
+        function spawnEnemy() {
+            const laneWidth = CONFIG.roadWidth / CONFIG.laneCount;
+            const roadX = (CONFIG.canvasWidth - CONFIG.roadWidth) / 2;
+            const lane = Math.floor(Math.random() * CONFIG.laneCount);
+            const colors = ['#ff9500', '#ff3b30', '#af52de', '#5856d6', '#007aff'];
+            
+            enemies.push({
+                x: roadX + lane * laneWidth + (laneWidth - CONFIG.carWidth) / 2,
+                y: -CONFIG.carHeight,
+                width: CONFIG.carWidth,
+                height: CONFIG.carHeight,
+                speed: gameState.config.enemyCarSpeed + Math.random() * 2 + gameState.level * 0.5,
+                color: colors[Math.floor(Math.random() * colors.length)]
+            });
+        }
+
+        // 创建粒子效果
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 10; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    life: 1,
+                    color: color
+                });
+            }
+        }
+
+        // 更新粒子
+        function updateParticles() {
+            particles = particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.03;
+                return p.life > 0;
+            });
+        }
+
+        // 绘制粒子
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // 碰撞检测
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        // 更新游戏状态
+        function update() {
+            if (!gameState.isRunning) return;
+
+            // 更新速度
+            if (gameState.isBraking) {
+                // 减速
+                if (gameState.speed > CONFIG.minSpeed) {
+                    gameState.speed -= CONFIG.decelerationRate;
+                    gameState.speed = Math.max(CONFIG.minSpeed, gameState.speed);
+                }
+            } else if (isAccelerating) {
+                // 持续加速
+                if (gameState.speed < gameState.config.maxSpeed) {
+                    gameState.speed += gameState.config.acceleration * 1.5;
+                }
+            } else {
+                // 正常加速
+                if (gameState.speed < gameState.config.maxSpeed) {
+                    gameState.speed += gameState.config.acceleration;
+                }
+            }
+
+            // 更新距离和分数
+            gameState.distance += gameState.speed * 0.1;
+            gameState.score = Math.floor(gameState.distance * 10);
+
+            // 播放得分音效（每100分）
+            if (gameState.score > 0 && gameState.score % 100 === 0 && gameState.score !== gameState.lastScore) {
+                soundSystem.play('score');
+                gameState.lastScore = gameState.score;
+            }
+
+            // 播放引擎音效（随机）
+            if (Math.random() < 0.02) {
+                soundSystem.play('engine');
+            }
+
+            // 更新道路标记
+            roadMarks.forEach(mark => {
+                mark.y += gameState.speed;
+                if (mark.y > CONFIG.canvasHeight) {
+                    mark.y = -40;
+                }
+            });
+
+            // 平滑移动玩家
+            player.x += (player.targetX - player.x) * 0.15;
+
+            // 限制玩家在道路内
+            const roadX = (CONFIG.canvasWidth - CONFIG.roadWidth) / 2;
+            player.x = Math.max(roadX, Math.min(roadX + CONFIG.roadWidth - player.width, player.x));
+
+            // 更新敌人
+            enemies.forEach(enemy => {
+                enemy.y += gameState.speed - enemy.speed;
+            });
+
+            // 移除屏幕外的敌人
+            enemies = enemies.filter(enemy => {
+                if (enemy.y > CONFIG.canvasHeight) {
+                    gameState.carsPassed++;
+                    soundSystem.play('score');
+                    return false;
+                }
+                return true;
+            });
+
+            // 生成新敌人
+            if (Math.random() < gameState.config.spawnRate + gameState.level * gameState.config.levelMultiplier) {
+                spawnEnemy();
+            }
+
+            // 碰撞检测
+            const playerRect = { x: player.x, y: player.y, width: player.width, height: player.height };
+            for (let enemy of enemies) {
+                if (checkCollision(playerRect, enemy)) {
+                    gameOver();
+                    return;
+                }
+            }
+
+            // 更新粒子
+            updateParticles();
+
+            // 更新等级
+            gameState.level = Math.floor(gameState.distance / 500) + 1;
+
+            // 更新UI
+            updateUI();
+        }
+
+        // 绘制游戏
+        function draw() {
+            ctx.clearRect(0, 0, CONFIG.canvasWidth, CONFIG.canvasHeight);
+
+            // 绘制道路
+            drawRoad();
+
+            // 绘制敌人
+            enemies.forEach(enemy => {
+                drawCar(enemy.x, enemy.y, enemy.width, enemy.height, false, enemy.color);
+            });
+
+            // 绘制玩家
+            drawCar(player.x, player.y, player.width, player.height, true);
+
+            // 绘制粒子
+            drawParticles();
+
+            // 绘制速度线效果
+            if (gameState.speed > 5) {
+                ctx.strokeStyle = 'rgba(0, 212, 255, 0.1)';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 5; i++) {
+                    const x = Math.random() * CONFIG.canvasWidth;
+                    const y = Math.random() * CONFIG.canvasHeight;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x, y + 20 + gameState.speed * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // 游戏循环
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 更新UI
+        function updateUI() {
+            document.getElementById('speed').textContent = Math.floor(gameState.speed * 10);
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('distance').textContent = Math.floor(gameState.distance) + 'm';
+            document.getElementById('cars').textContent = gameState.carsPassed;
+            document.getElementById('level').textContent = gameState.level;
+        }
+
+        // 开始游戏
+        function startGame() {
+            // 初始化音效系统
+            soundSystem.init();
+            
+            gameState = {
+                isRunning: true,
+                score: 0,
+                distance: 0,
+                speed: 0,
+                level: 1,
+                carsPassed: 0,
+                difficulty: gameState.difficulty,
+                config: CONFIG.difficulties[gameState.difficulty],
+                isBraking: false,
+                lastScore: 0
+            };
+            
+            player.x = CONFIG.canvasWidth / 2 - CONFIG.carWidth / 2;
+            player.targetX = player.x;
+            enemies = [];
+            particles = [];
+            
+            initRoadMarks();
+            
+            document.getElementById('startOverlay').classList.add('hidden');
+            document.getElementById('gameOverOverlay').classList.add('hidden');
+        }
+
+        // 游戏结束
+        function gameOver() {
+            gameState.isRunning = false;
+            createParticles(player.x + player.width / 2, player.y + player.height / 2, '#00d4ff');
+            soundSystem.play('crash');
+            
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('finalDistance').textContent = `Distance: ${Math.floor(gameState.distance)}m`;
+            document.getElementById('gameOverOverlay').classList.remove('hidden');
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (!gameState.isRunning) return;
+            
+            const laneWidth = CONFIG.roadWidth / CONFIG.laneCount;
+            const roadX = (CONFIG.canvasWidth - CONFIG.roadWidth) / 2;
+            
+            if (e.key === 'ArrowLeft') {
+                player.targetX = Math.max(roadX, player.targetX - laneWidth);
+                soundSystem.play('turn');
+            } else if (e.key === 'ArrowRight') {
+                player.targetX = Math.min(roadX + CONFIG.roadWidth - player.width, player.targetX + laneWidth);
+                soundSystem.play('turn');
+            } else if (e.key === 'ArrowDown') {
+                gameState.isBraking = true;
+                soundSystem.play('brake');
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (!gameState.isRunning) return;
+            
+            if (e.key === 'ArrowDown') {
+                gameState.isBraking = false;
+            }
+        });
+
+        // 触摸控制
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        const brakeBtn = document.getElementById('brakeBtn');
+
+        // 触摸开始事件
+        leftBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!gameState.isRunning) return;
+            
+            const laneWidth = CONFIG.roadWidth / CONFIG.laneCount;
+            const roadX = (CONFIG.canvasWidth - CONFIG.roadWidth) / 2;
+            player.targetX = Math.max(roadX, player.targetX - laneWidth);
+            soundSystem.play('turn');
+        });
+
+        rightBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!gameState.isRunning) return;
+            
+            const laneWidth = CONFIG.roadWidth / CONFIG.laneCount;
+            const roadX = (CONFIG.canvasWidth - CONFIG.roadWidth) / 2;
+            player.targetX = Math.min(roadX + CONFIG.roadWidth - player.width, player.targetX + laneWidth);
+            soundSystem.play('turn');
+        });
+
+        // 加速按钮 - 左侧
+        const accelerateBtn = document.getElementById('accelerateBtn');
+        const rightAccelerateBtn = document.getElementById('rightAccelerateBtn');
+        let isAccelerating = false;
+        
+        accelerateBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!gameState.isRunning) return;
+            isAccelerating = true;
+            accelerateBtn.classList.add('active');
+            soundSystem.play('turn');
+        });
+
+        accelerateBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            isAccelerating = false;
+            accelerateBtn.classList.remove('active');
+        });
+
+        // 加速按钮 - 右侧
+        rightAccelerateBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!gameState.isRunning) return;
+            isAccelerating = true;
+            rightAccelerateBtn.classList.add('active');
+            soundSystem.play('turn');
+        });
+
+        rightAccelerateBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            isAccelerating = false;
+            rightAccelerateBtn.classList.remove('active');
+        });
+
+        // 减速按钮 - 左侧
+        brakeBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!gameState.isRunning) return;
+            
+            gameState.isBraking = true;
+            brakeBtn.classList.add('active');
+            soundSystem.play('brake');
+        });
+
+        brakeBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            gameState.isBraking = false;
+            brakeBtn.classList.remove('active');
+        });
+
+        // 减速按钮 - 右侧
+        const rightBrakeBtn = document.getElementById('rightBrakeBtn');
+        rightBrakeBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!gameState.isRunning) return;
+            
+            gameState.isBraking = true;
+            rightBrakeBtn.classList.add('active');
+            soundSystem.play('brake');
+        });
+
+        rightBrakeBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            gameState.isBraking = false;
+            rightBrakeBtn.classList.remove('active');
+        });
+
+        // 鼠标事件（用于桌面测试）
+        leftBtn.addEventListener('mousedown', (e) => {
+            if (!gameState.isRunning) return;
+            
+            const laneWidth = CONFIG.roadWidth / CONFIG.laneCount;
+            const roadX = (CONFIG.canvasWidth - CONFIG.roadWidth) / 2;
+            player.targetX = Math.max(roadX, player.targetX - laneWidth);
+            soundSystem.play('turn');
+        });
+
+        rightBtn.addEventListener('mousedown', (e) => {
+            if (!gameState.isRunning) return;
+            
+            const laneWidth = CONFIG.roadWidth / CONFIG.laneCount;
+            const roadX = (CONFIG.canvasWidth - CONFIG.roadWidth) / 2;
+            player.targetX = Math.min(roadX + CONFIG.roadWidth - player.width, player.targetX + laneWidth);
+            soundSystem.play('turn');
+        });
+
+        // 加速按钮鼠标事件 - 左侧
+        accelerateBtn.addEventListener('mousedown', (e) => {
+            if (!gameState.isRunning) return;
+            isAccelerating = true;
+            accelerateBtn.classList.add('active');
+            soundSystem.play('turn');
+        });
+
+        accelerateBtn.addEventListener('mouseup', (e) => {
+            isAccelerating = false;
+            accelerateBtn.classList.remove('active');
+        });
+
+        // 加速按钮鼠标事件 - 右侧
+        rightAccelerateBtn.addEventListener('mousedown', (e) => {
+            if (!gameState.isRunning) return;
+            isAccelerating = true;
+            rightAccelerateBtn.classList.add('active');
+            soundSystem.play('turn');
+        });
+
+        rightAccelerateBtn.addEventListener('mouseup', (e) => {
+            isAccelerating = false;
+            rightAccelerateBtn.classList.remove('active');
+        });
+
+        // 减速按钮鼠标事件 - 左侧
+        brakeBtn.addEventListener('mousedown', (e) => {
+            if (!gameState.isRunning) return;
+            gameState.isBraking = true;
+            brakeBtn.classList.add('active');
+            soundSystem.play('brake');
+        });
+
+        brakeBtn.addEventListener('mouseup', (e) => {
+            gameState.isBraking = false;
+            brakeBtn.classList.remove('active');
+        });
+
+        // 减速按钮鼠标事件 - 右侧
+        rightBrakeBtn.addEventListener('mousedown', (e) => {
+            if (!gameState.isRunning) return;
+            gameState.isBraking = true;
+            rightBrakeBtn.classList.add('active');
+            soundSystem.play('brake');
+        });
+
+        rightBrakeBtn.addEventListener('mouseup', (e) => {
+            gameState.isBraking = false;
+            rightBrakeBtn.classList.remove('active');
+        });
+
+        // 防止触摸滑动
+        document.addEventListener('touchmove', (e) => {
+            if (e.target.closest('.touch-controls')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // 难度选择
+        const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+        let selectedDifficulty = 'normal';
+        
+        difficultyBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                difficultyBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedDifficulty = btn.dataset.difficulty;
+                gameState.difficulty = selectedDifficulty;
+                
+                // 更新顶部显示
+                document.getElementById('difficultyDisplay').textContent = selectedDifficulty.toUpperCase();
+            });
+        });
+        
+        // 默认选中Easy-Easy难度
+        document.querySelector('.easy-easy-btn').classList.add('selected');
+        
+        // 开始游戏按钮
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('restartBtn').addEventListener('click', startGame);
+
+        // 返回主页按钮
+        document.getElementById('homeBtn').addEventListener('click', () => {
+            if (gameState.isRunning) {
+                gameState.isRunning = false;
+            }
+            document.getElementById('startOverlay').classList.remove('hidden');
+            document.getElementById('gameOverOverlay').classList.add('hidden');
+            soundSystem.play('turn');
+        });
+
+        // 移动端返回主页按钮
+        document.getElementById('homeBtnMobile').addEventListener('click', () => {
+            if (gameState.isRunning) {
+                gameState.isRunning = false;
+            }
+            document.getElementById('startOverlay').classList.remove('hidden');
+            document.getElementById('gameOverOverlay').classList.add('hidden');
+            soundSystem.play('turn');
+        });
+
+        // 暂停按钮
+        let isPaused = false;
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            if (gameState.isRunning) {
+                isPaused = !isPaused;
+                gameState.isRunning = !isPaused;
+                soundSystem.play('turn');
+            }
+        });
+
+        // 全屏功能
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    fullscreenBtn.innerHTML = `
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    `;
+                }).catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen().then(() => {
+                    fullscreenBtn.innerHTML = `
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    `;
+                }).catch(err => {
+                    console.log(`Error attempting to exit fullscreen: ${err.message}`);
+                });
+            }
+        }
+
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+        // 监听全屏状态变化
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fullscreenBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                `;
+            } else {
+                fullscreenBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                `;
+            }
+        });
+
+        // 初始化
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        initRoadMarks();
+        gameLoop();
+    </script>
+</body>
+</html>
