@@ -443,24 +443,41 @@
         }
 
         @media (orientation: landscape) {
+            /* 横屏模式下缩小方向键区域 */
             .touch-left-dpad {
-                left: 40px;
+                left: 20px;
+                width: 160px;
+                height: 160px;
             }
 
             .touch-right-dpad {
-                right: 40px;
+                right: 20px;
+                width: 160px;
+                height: 160px;
             }
 
-            /* 横屏模式下，顶部功能按钮移到左侧 */
+            /* 横屏模式下缩小按钮尺寸 */
+            .dpad-btn {
+                width: 55px;
+                height: 55px;
+            }
+
+            .dpad-btn svg {
+                width: 28px;
+                height: 28px;
+            }
+
+            /* 横屏模式下功能按钮放在顶部中间 */
             .touch-top-controls {
-                top: 70px;
-                left: 20px;
+                top: 15px;
+                left: 50%;
+                transform: translateX(-50%);
                 right: auto;
             }
 
             /* 横屏模式下调整侧边信息栏位置 */
             .fsd-sidebar {
-                right: 260px;
+                right: 200px;
             }
         }
 
