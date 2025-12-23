@@ -419,6 +419,11 @@
 
         /* 横竖屏适配 */
         @media (orientation: portrait) {
+            /* 竖屏模式下隐藏侧边信息栏，避免与右侧方向键重叠 */
+            .fsd-sidebar {
+                display: none;
+            }
+
             .touch-left-dpad {
                 left: 20px;
                 width: 150px;
