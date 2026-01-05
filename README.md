@@ -26,7 +26,7 @@ A Tesla FSD-style web racing game with desktop and mobile device support.
 ### Easy-Easy Mode
 - Extremely slow enemy cars (0.1x speed)
 - Very low maximum speed (2.5 km/h)
-- Minimal enemy spawns
+- Minimal enemy spawns (70% fewer)
 - Very slow acceleration
 - Perfect for absolute beginners and children
 

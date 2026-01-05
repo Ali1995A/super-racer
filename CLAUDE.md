@@ -45,7 +45,7 @@ vercel
 
 ### Difficulty System
 Four difficulty levels defined in `CONFIG.difficulties`:
-- `easy-easy` - Extremely slow (0.1x enemy speed, 2.5 km/h max)
+- `easy-easy` - Extremely slow (0.1x enemy speed, 2.5 km/h max, 70% fewer spawns)
 - `easy` - Very slow (0.5x enemy speed, 8 km/h max)
 - `normal` - Balanced (default)
 - `hard` - Challenging (faster enemies, higher max speed)
